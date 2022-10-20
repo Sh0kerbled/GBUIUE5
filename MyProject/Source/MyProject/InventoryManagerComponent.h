@@ -3,12 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "InventoryItem.h"
+#include "InventoryCellWidget.h"
+#include "InventoryComponent.h"
 #include "Components/ActorComponent.h"
+#include "EquipInventoryComponent.h"
 #include "InventoryManagerComponent.generated.h"
 
-class UInventoryComponents;
+class UInventoryComponent;
 class UInventoryWidget;
+class UInventoryCellWidget;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MYPROJECT_API UInventoryManagerComponent : public UActorComponent
@@ -18,28 +21,39 @@ class MYPROJECT_API UInventoryManagerComponent : public UActorComponent
 public:
 
 	UInventoryManagerComponent();
+	
+	void Init(UInventoryComponent * InInventoryComponent);
+	
+	void InitLocalInventory(UInventoryComponent* InInventoryComponent);
 
-	void Init(UInventoryComponents* InInventoryComponent);
+	FInventoryItemInfo* GetItemData(FName ItemID);
+	
+	void InitEquipment(UInventoryComponent * InInventoryComponent);
+	void MoveItem(UInventoryCellWidget* FromCell, UInventoryCellWidget* ToCell);
 
-	const FInventoryItemInfo* GetItemData(const FName& InID) const;
+	FOnItemDrop OnItemDropped;
 
 protected:
+	
+	UPROPERTY()
+	UInventoryComponent * LocalInventoryComponent;
+	
+	UPROPERTY(EditAnywhere)
+	UDataTable * InventoryItemsData;
+	
+	UPROPERTY()
+	UInventoryWidget * InventoryWidget;
+	
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UInventoryWidget> InventoryWidgetClass;
+	
+	UPROPERTY(EditAnywhere)
+	int32 MinInventorySize = 5;
 
 	UPROPERTY()
-	UInventoryComponents* LocalInventoryComponent;
-
+	UInventoryWidget * EquipInventoryWidget;
+	
 	UPROPERTY(EditAnywhere)
-		UDataTable* ItemsData;
-
-	UPROPERTY(EditAnywhere)
-		int32 MinInventorySize = 20;
-
-	UPROPERTY(EditAnywhere)
-		TSubclassOf<UInventoryWidget> InventoryWidgetClass;
-
-	UPROPERTY()
-		UInventoryWidget* InventoryWidget;
-
-	void OnItemDropFunc(UInventoryCellsWidget* From, UInventoryCellsWidget* To);
-
+	TSubclassOf<UInventoryWidget> EquipInventoryWidgetClass;
+	
 };

@@ -1,48 +1,54 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
-
 #include "CoreMinimal.h"
-#include "InventoryItem.h"
+#include "InventoryCellWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "InventoryWidget.generated.h"
 
-class UInventoryCellsWidget;
 class UUniformGridPanel;
+class UInventoryCellWidget;
 
-UCLASS()
+UCLASS(Abstract)
 class MYPROJECT_API UInventoryWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-
+	
 	virtual void NativeConstruct() override;
+	
+	void Init(int32 ItemsNum);
+	
+	bool AddItem(const FInventorySlotInfo& Item, const FInventoryItemInfo& ItemInfo,
+		
+	int32 SlotPosition = -1);
 
-	void Init(int32 ItemsCount);
-
-	bool AddItem(const FInventoryItemInfo& Info, const FInventoryItemSlotInfo& InSlot, int32 SlotIndex);
-
-	FOntItemDrop OnItemDrop;
-
-protected:
-
-	UPROPERTY(EditDefaultsOnly)
-		int32 ItemsInRaw = 5;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UInventoryCellsWidget> CellWidgetClass;
-
-	UPROPERTY(BlueprintReadOnly,Meta = (BindWidget))
-	UUniformGridPanel* CellsPanel;
-
-	UPROPERTY(BlueprintReadOnly,Meta = (BindWidget))
-		UUniformGridPanel* GoldCells;
+	FOnItemDrop OnItemDrop;
 
 	UPROPERTY()
-		TArray<UInventoryCellsWidget*> CellWidgets;
+    class UInventoryComponent * RepresentedInventory;
 
-	UInventoryCellsWidget* CreateCell();
+protected:
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	UUniformGridPanel* ItemCellsGrid;
+	
+	UPROPERTY(EditDefaultsOnly)
+	int32 ItemsInPow = 5;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UInventoryCellWidget> CellWidgetClass;
+	
+	UPROPERTY()
+	TArray<UInventoryCellWidget*> CellWidgets;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	UInventoryCellWidget* GoldCell;
+	
+	UInventoryCellWidget * CreateCellWidget();
+	void InitCellWidget(UInventoryCellWidget* Widget);
 
-	void OnItemdropFunc(UInventoryCellsWidget* From, UInventoryCellsWidget* To);
+	void OnItemDropped(UInventoryCellWidget * DraggedFrom, UInventoryCellWidget * DroppedTo);
+	
 };

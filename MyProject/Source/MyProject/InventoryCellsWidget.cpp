@@ -51,7 +51,7 @@ void UInventoryCellsWidget::Clear()
 
 FReply UInventoryCellsWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (bCanDrag && bHasItem && InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton));
+	if (bCanDrag && bHasItem && InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
@@ -75,11 +75,11 @@ void UInventoryCellsWidget::NativeOnDragDetected(const FGeometry& InGeometry, co
 bool UInventoryCellsWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
 	UDragDropOperation* InOperation)
 {
-	if (InOperation && InOperation->DefaultDragVisual && InOperation->DefaultDragVisual != this);
+	if (InOperation && InOperation->DefaultDragVisual && InOperation->DefaultDragVisual != this)
 	{
 		if (auto* FromCell = Cast<UInventoryCellsWidget>(InOperation->DefaultDragVisual))
 		{
-			OnItemDrop.BroadCast(FromCell, this);
+			OnItemDrop.Broadcast(FromCell, this);
 			return true;
 		}
 	}

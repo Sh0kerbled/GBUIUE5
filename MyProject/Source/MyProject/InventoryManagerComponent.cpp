@@ -3,60 +3,92 @@
 
 #include "InventoryManagerComponent.h"
 
-#include "InventoryCharacter.h"
+#include "InventoryCellWidget.h"
 #include "InventoryWidget.h"
+#include "InventoryComponent.h"
 #include "Blueprint/UserWidget.h"
 
-// Sets default values for this component's properties
+
 UInventoryManagerComponent::UInventoryManagerComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
+	//
 }
 
-void UInventoryManagerComponent::Init(UInventoryComponents* InInventoryComponent)
+void UInventoryManagerComponent::Init(UInventoryComponent *
+InInventoryComponent)
 {
-	if(LocalInventoryComponent && ItemsData && InventoryWidgetClass)
+	LocalInventoryComponent = InInventoryComponent;
+	if (LocalInventoryComponent && InventoryItemsData)
 	{
-		LocalInventoryComponent = InInventoryComponent;
-
-		InventoryWidget = CreateWidget<UInventoryWidget>(GetWorld(), InventoryWidgetClass);
+		ensure(InventoryWidgetClass);
+		InventoryWidget = CreateWidget<UInventoryWidget>(GetWorld(),InventoryWidgetClass);
 		InventoryWidget->AddToViewport();
-
-		InventoryWidget->Init(FMath::Max(MinInventorySize, LocalInventoryComponent->GetItemsNum));
-		InventoryWidget->OnItemDrop.AddUObject(this, &ThisClass::OnItemDropFunc);
-
-		for(const auto* [SlotIndex,SlotInfo] : LocalInventoryComponent->GetItems())
+		InventoryWidget->Init(FMath::Max(LocalInventoryComponent->GetItemsNum(), MinInventorySize));
+		for (auto& Item : LocalInventoryComponent->GetItems())
 		{
-			if (auto* Data = GetItemData(SlotInfo.Id))
+			FInventoryItemInfo* ItemData = GetItemData(Item.Value.ItemID);
+			if (ItemData)
 			{
-				InventoryWidget->AddItem(SlotInfo, *Data, SlotIndex);
+				ItemData->Icon.LoadSynchronous();
+				InventoryWidget->AddItem(Item.Value, *ItemData, Item.Key);
 			}
 		}
 	}
 }
 
-const FInventoryItemInfo* UInventoryManagerComponent::GetItemData(const FName& InID) const
+void UInventoryManagerComponent::InitLocalInventory(UInventoryComponent * InInventoryComponent)
 {
-	return ItemsData ? ItemsData->FindRow<FInventoryItemInfo>(InID, "") : nullptr;
+	InventoryWidget->RepresentedInventory = LocalInventoryComponent;
+	InventoryWidget->AddToViewport();
 }
 
-void UInventoryManagerComponent::OnItemDropFunc(UInventoryCellsWidget* From, UInventoryCellsWidget* To)
+FInventoryItemInfo * UInventoryManagerComponent::GetItemData(FName ItemID)
 {
-	FInventoryItemInfo FromItem = From->GetItem();
-	FInventoryItemInfo ToItem = To->GetItem();
+	return InventoryItemsData ?
+	InventoryItemsData->FindRow<FInventoryItemInfo>(ItemID, "") : nullptr;
+}
 
-	From->Clear();
-	To->Clear();
+void UInventoryManagerComponent::InitEquipment(UInventoryComponent * InInventoryComponent)
+{
+	ensure(EquipInventoryWidgetClass);
+	EquipInventoryWidget = CreateWidget<UInventoryWidget>(GetWorld(),
+	EquipInventoryWidgetClass);
+	EquipInventoryWidget->OnItemDrop.AddUObject(this, &UInventoryManagerComponent::OnItemDropped);
+	EquipInventoryWidget->AddToViewport();
+	EquipInventoryWidget->RepresentedInventory = InInventoryComponent;
+    EquipInventoryWidget->AddToViewport();
+}
 
-	To->AddItem(FromItem, *GetItemData(FromItem.Id));
-
-	if (!ToItem.Id.IsNone())
+void UInventoryManagerComponent::MoveItem(UInventoryCellWidget * FromCell,
+UInventoryCellWidget * ToCell)
+{
+	if (!FromCell || !ToCell)
 	{
-		From->AddItem, * GetItemData(ToItem.Id);
+		return;
 	}
-}
+	UInventoryComponent * FromInventory = FromCell->ParentInventoryWidget->RepresentedInventory;
+	UInventoryComponent * ToInventory = ToCell->ParentInventoryWidget->RepresentedInventory;
+	if (!FromInventory || !ToInventory)
+	{
+		return;
+	}
 
+	FInventorySlotInfo ItemToDrop = Item;
+	ItemToDrop.Amount = ToInventory->GetMaxItemAmount(ToCell->IndexInInventory,
+	*ItemData);
+	if (ItemToDrop.Amount == 0)
+	{
+		return;
+	}
+	if (ItemToDrop.Amount == -1)
+	{
+		ItemToDrop.Amount = Item.Amount;
+	}
+	Item.Amount -= ItemToDrop.Amount;
+	FromCell->Clear();
+	FromCell->AddItem(Item, *ItemData);
+	ToCell->Clear();
+	ToCell->AddItem(ItemToDrop, *ItemData);
+	FromInventory->SetItem(FromCell->IndexInInventory, Item);
+	ToInventory->SetItem(ToCell->IndexInInventory, ItemToDrop);
+}

@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InventoryCharacter.h"
 #include "GameFramework/Character.h"
 #include "MyProjectCharacter.generated.h"
 
 UCLASS(config=Game)
-class AMyProjectCharacter : public ACharacter
+class AMyProjectCharacter : public AInventoryCharacter
 {
 	GENERATED_BODY()
 
@@ -22,10 +23,17 @@ public:
 	AMyProjectCharacter();
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
-	float TurnRateGamepad;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
+	float BaseTurnRate;
+
+	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
+	float BaseLookUpRate;
 
 protected:
+
+	/** Resets HMD orientation in VR. */
+	void OnResetVR();
 
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
